@@ -1,35 +1,48 @@
-const express = require('express');
-const http = require('http');
-const WebSocket = require('ws');
-const path = require('path');
+import express from "express";
+import cors from 'cors';
+import events from 'events';
+import path from "path";
+import { fileURLToPath } from 'url';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const emitter = new events.EventEmitter()
 const app = express();
-const server = http.createServer(app);
-const wss = new WebSocket.Server({ server });
+
+const PORT = 5000;
+
+app.use(cors());
+app.use(express.json());
 
 app.use(express.static(path.join(__dirname, 'dist')));
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+})
 
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
-});
+app.get('/messages', (req, res ) => {
+    
+    emitter.once('newMessage', (message) => {
+        res.json(message)
+        res.end()
+    })
+})
 
-const clients = new Set();
+app.post('/message', ((req, res) => {
+    const message = req.body;
+    emitter.emit('newMessage', message)
+    res.status(200);
+    res.end()
+}))
 
-wss.on('connection', (ws) => {
-  clients.add(ws);
 
-  ws.on('message', (message) => {
-    clients.forEach((client) => {
-      if (client.readyState === WebSocket.OPEN) {
-        client.send(message);
-      }
-    });
-  });
+const start = () => {
+    try {
+        app.listen(PORT, () => console.log('Server start in port: ' + PORT))
+    } catch (error) {
+        console.log(error)
+    }
+}
 
-  ws.on('close', () => {
-    clients.delete(ws);
-  });
-});
 
-const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+start()

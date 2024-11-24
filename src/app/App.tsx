@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { v4 as uuidv4 } from "uuid";
 import "./style/index.css";
+import axios from "axios";
 
 type Message = {
   id: string;
@@ -11,24 +12,8 @@ type Message = {
 const App: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState<string>("");
-  const ws = useRef<WebSocket | null>(null);
 
-  useEffect(() => {
-    ws.current = new WebSocket(`ws://${window.location.hostname}:5000`);
-
-    ws.current.onmessage = async (event: MessageEvent) => {
-      const dataText = await event.data.text();
-      const newMessage: Message = JSON.parse(dataText);
-
-      setMessages((prevMessages) => [...prevMessages, newMessage]);
-    };
-
-    return () => {
-      if (ws.current) ws.current.close();
-    };
-  }, []);
-
-  const sendMessage = () => {
+  const sendMessage = async () => {
     if (input.trim() !== "") {
       const message: Message = {
         id: uuidv4(),
@@ -37,10 +22,28 @@ const App: React.FC = () => {
       };
       console.log(message);
 
-      ws.current?.send(JSON.stringify(message));
+      await axios.post("/message", message);
       setInput("");
     }
   };
+
+  const fetchMessages = async () => {
+    try {
+      const { data } = await axios.get("/messages");
+      console.log(data);
+
+      if (data) {
+        setMessages((prevMessages) => [...prevMessages, data]);
+        await fetchMessages();
+      }
+    } catch (error) {
+      setTimeout(fetchMessages, 1000);
+    }
+  };
+
+  useEffect(() => {
+    fetchMessages();
+  }, []);
 
   return (
     <div style={{ padding: 20 }}>
