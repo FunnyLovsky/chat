@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { v4 as uuidv4 } from "uuid";
 import "./style/index.css";
 import axios from "axios";
@@ -22,14 +22,14 @@ const App: React.FC = () => {
       };
       console.log(message);
 
-      await axios.post("/message", message);
+      await axios.post("/message/", message);
       setInput("");
     }
   };
 
   const fetchMessages = async () => {
     try {
-      const { data } = await axios.get("/messages");
+      const { data } = await axios.get("/messages/");
       console.log(data);
 
       if (data) {
