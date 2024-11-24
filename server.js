@@ -1,13 +1,11 @@
 import express from "express";
 import cors from 'cors';
-import events from 'events';
 import path from "path";
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const emitter = new events.EventEmitter()
 const app = express();
 
 const PORT = 5000;
@@ -20,20 +18,42 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 })
 
-app.get('/messages', (req, res ) => {
-    
-    emitter.once('newMessage', (message) => {
-        res.json(message)
-        res.end()
-    })
-})
+let messages= [];
+let clients = [];
 
-app.post('/message', ((req, res) => {
-    const message = req.body;
-    emitter.emit('newMessage', message)
-    res.status(200);
-    res.end()
-}))
+app.post('/message', (req, res) => {
+  const  message = req.body;
+  messages.push(message);
+
+  clients.forEach(client => client.res.json( message ));
+  clients = [];
+
+  res.status(200).send();
+});
+
+app.get('/messages', (req, res) => {
+    const client = { res };
+    clients.push(client);
+
+  const timeoutId = setTimeout(() => {
+    const index = clients.indexOf(client);
+    if (index !== -1) {
+      clients.splice(index, 1);
+    }
+    if (!res.headersSent) { 
+      res.json({  });
+    }
+  }, 30000);
+
+
+  req.on('close', () => {
+    clearTimeout(timeoutId);
+    const index = clients.indexOf(client);
+    if (index !== -1) {
+      clients.splice(index, 1);
+    }
+  });
+});
 
 
 const start = () => {
