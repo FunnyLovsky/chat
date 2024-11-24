@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "ES6",
     "module": "CommonJS",
-    "outDir": "./public",
+    "outDir": "./dist",
     "strict": true,
     "esModuleInterop": true,
     "jsx": "react-jsx",
